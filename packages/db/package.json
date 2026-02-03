@@ -20,14 +20,19 @@
     "clean": "rimraf dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["database", "mongoose", "events"],
+  "keywords": [
+    "database",
+    "mongoose",
+    "events"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "mongoose": "^9.1.5"
   },
   "devDependencies": {
-    "typescript": "5.9.2",
-    "rimraf": "^5.0.5"
+    "@types/node": "^22.15.3",
+    "rimraf": "^5.0.5",
+    "typescript": "5.9.2"
   }
 }
