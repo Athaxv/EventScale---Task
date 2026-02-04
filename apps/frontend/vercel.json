@@ -1,0 +1,9 @@
+{
+  "buildCommand": "cd ../.. && pnpm install --frozen-lockfile && pnpm --filter eventscale build",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile --shamefully-hoist",
+  "framework": null,
+  "outputDirectory": "dist",
+  "devCommand": "cd ../.. && pnpm --filter eventscale dev",
+  "nodeVersion": "20.x"
+}
+
