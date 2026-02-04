@@ -5,7 +5,7 @@ import { Event } from '../types';
 import { MapPin, Calendar, ExternalLink, ArrowRight } from 'lucide-react';
 import Navbar from './Navbar';
 import TicketModal from './TicketModal';
-import { fetchApprovedEvents } from '../services/api';
+import { fetchApprovedEvents, createEventLead } from '../services/api';
 import { transformApiEvents } from '../utils/eventTransformer';
 
 const EventMarketplace: React.FC = () => {
@@ -21,7 +21,9 @@ const EventMarketplace: React.FC = () => {
         setIsLoading(true);
         setError(null);
         const apiEvents = await fetchApprovedEvents();
-        const transformedEvents = transformApiEvents(apiEvents);
+        // Double-check: filter to ensure only approved events are displayed
+        const approvedEvents = apiEvents.filter(event => event.isApproved === true);
+        const transformedEvents = transformApiEvents(approvedEvents);
         setEvents(transformedEvents);
       } catch (err: any) {
         console.error('Failed to fetch events:', err);
@@ -43,21 +45,46 @@ const EventMarketplace: React.FC = () => {
     setSelectedEvent(event);
   };
 
-  const handleTicketSuccess = (email: string, consent: boolean) => {
-    console.log(`Saving to DB: Email=${email}, Consent=${consent}, Event=${selectedEvent?.id}`);
-    toast.success('Redirecting to ticket provider...', {
-      description: `Opening ${selectedEvent?.title || 'event'} tickets`
-    });
-    
-    // Simulate redirection delay
-    setTimeout(() => {
-      if (selectedEvent?.sourceUrl) {
-        window.open(selectedEvent.sourceUrl, '_blank');
-      } else {
-        window.open('https://example.com', '_blank');
-      }
-      setSelectedEvent(null);
-    }, 1500);
+  const handleTicketSuccess = async (email: string, consent: boolean) => {
+    if (!selectedEvent?.id) {
+      toast.error('Event not found');
+      return;
+    }
+
+    try {
+      // Save email to database
+      await createEventLead(selectedEvent.id, {
+        email,
+        consent,
+        originalEventUrl: selectedEvent.sourceUrl
+      });
+
+      toast.success('Redirecting to ticket provider...', {
+        description: `Opening ${selectedEvent.title} tickets`
+      });
+      
+      // Redirect after a short delay
+      setTimeout(() => {
+        if (selectedEvent.sourceUrl) {
+          window.open(selectedEvent.sourceUrl, '_blank');
+        } else {
+          window.open('https://example.com', '_blank');
+        }
+        setSelectedEvent(null);
+      }, 500);
+    } catch (error: any) {
+      console.error('Failed to save lead:', error);
+      toast.error('Failed to save your information', {
+        description: error.message || 'Please try again'
+      });
+      // Still redirect even if save fails
+      setTimeout(() => {
+        if (selectedEvent.sourceUrl) {
+          window.open(selectedEvent.sourceUrl, '_blank');
+        }
+        setSelectedEvent(null);
+      }, 1000);
+    }
   };
 
   return (

@@ -45,6 +45,8 @@ model Event {
   status          EventStatus @default(new)
   hash            String   @unique @map("hash") @db.VarChar(255)
   isApproved      Boolean  @default(false) @map("is_approved")
+  importedAt      DateTime? @map("imported_at") @db.Timestamptz(6)
+  importedBy      String?   @map("imported_by") @db.VarChar(255)
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 

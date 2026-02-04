@@ -16,15 +16,21 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, event, onSuc
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email.trim()) {
+      return;
+    }
+
     setIsSubmitting(true);
     
-    // Simulate API call
+    // Call the success handler which will handle the API call
+    // The actual API call happens in EventMarketplace component
     setTimeout(() => {
       setIsSubmitting(false);
-      onSuccess(email, consent);
-    }, 800);
+      onSuccess(email.trim(), consent);
+    }, 300);
   };
 
   return (

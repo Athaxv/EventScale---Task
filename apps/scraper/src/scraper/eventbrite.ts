@@ -1,5 +1,6 @@
 import { getPrisma } from "@repo/db";
 import { createContentHash } from "../utils/hash.js";
+import { safeParseEventDate } from "../utils/dateParser.js";
 import { chromium } from "playwright";
 
 const source_name = "Eventbrite";
@@ -190,15 +191,57 @@ export async function scrapeEventbrite() {
                           await eventPage.$('p');
             const description = descEl ? await descEl.textContent() || "" : "";
 
-            const timeEl = await eventPage.$("time[datetime]") || await eventPage.$("time");
+            // Try multiple strategies to get event date/time
             let dateTime = "";
+            
+            // Strategy 1: Look for datetime attribute (ISO format - most reliable)
+            const timeEl = await eventPage.$("time[datetime]");
             if (timeEl) {
-                dateTime = await timeEl.getAttribute("datetime") || 
-                          (await timeEl.textContent())?.trim() || "";
+                dateTime = await timeEl.getAttribute("datetime") || "";
             }
+            
+            // Strategy 2: Look for structured data or JSON-LD
+            if (!dateTime) {
+                const jsonLdScripts = await eventPage.$$('script[type="application/ld+json"]');
+                for (const script of jsonLdScripts) {
+                    const content = await script.textContent();
+                    if (content) {
+                        try {
+                            const jsonLd = JSON.parse(content);
+                            if (jsonLd['@type'] === 'Event' && jsonLd.startDate) {
+                                dateTime = jsonLd.startDate;
+                                break;
+                            }
+                        } catch (e) {
+                            // Ignore JSON parse errors
+                        }
+                    }
+                }
+            }
+            
+            // Strategy 3: Look for data-testid="event-date"
             if (!dateTime) {
                 const dateEl = await eventPage.$('[data-testid="event-date"]');
-                if (dateEl) dateTime = await dateEl.textContent() || "";
+                if (dateEl) {
+                    dateTime = await dateEl.textContent() || "";
+                }
+            }
+            
+            // Strategy 4: Look for any time element
+            if (!dateTime) {
+                const timeElFallback = await eventPage.$("time");
+                if (timeElFallback) {
+                    dateTime = await timeElFallback.getAttribute("datetime") || 
+                              (await timeElFallback.textContent())?.trim() || "";
+                }
+            }
+            
+            // Strategy 5: Look for date in meta tags
+            if (!dateTime) {
+                const metaDate = await eventPage.$('meta[property="event:start_time"]');
+                if (metaDate) {
+                    dateTime = await metaDate.getAttribute("content") || "";
+                }
             }
 
             const venueNameEl = await eventPage.$('[data-testid="venue-name"]') ||
@@ -229,26 +272,11 @@ export async function scrapeEventbrite() {
                 continue;
             }
 
-            // Parse date - handle various formats
-            let dateTimeStart: Date;
-            let dateTimeEnd: Date;
-            try {
-                if (data.dateTime) {
-                    dateTimeStart = new Date(data.dateTime);
-                    dateTimeEnd = new Date(data.dateTime);
-                    // Add 2 hours as default end time if not specified
-                    dateTimeEnd.setHours(dateTimeEnd.getHours() + 2);
-                } else {
-                    // Fallback to current date if no date found
-                    dateTimeStart = new Date();
-                    dateTimeEnd = new Date();
-                    dateTimeEnd.setHours(dateTimeEnd.getHours() + 2);
-                }
-            } catch (e) {
-                dateTimeStart = new Date();
-                dateTimeEnd = new Date();
-                dateTimeEnd.setHours(dateTimeEnd.getHours() + 2);
-            }
+            // Parse date using improved date parser
+            const { start: dateTimeStart, end: dateTimeEnd } = safeParseEventDate(
+                data.dateTime || null,
+                "Australia/Sydney"
+            );
 
             const resp = {
                 title: data.title,

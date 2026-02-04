@@ -170,11 +170,15 @@ app.get("/admin/events", verifyToken, async (req, res) => {
     }
 })
 
+// Public endpoint: Get only approved events for marketplace
 app.get("/events", async (req, res) => {
     try {
         const events = await prisma.event.findMany({
             where: {
-                isApproved: true
+                isApproved: true, // Only return approved events
+                status: {
+                    not: 'inactive' // Exclude inactive events
+                }
             },
             orderBy: {
                 dateTimeStart: "asc"
@@ -182,6 +186,7 @@ app.get("/events", async (req, res) => {
         });
         res.status(200).json(events);
     } catch (error) {
+        console.error('Failed to fetch approved events:', error);
         res.status(500).json({ error: "Failed to fetch approved events" });
     }
 })
@@ -206,13 +211,94 @@ app.post("/admin/event/:id", verifyToken, async (req, res) => {
             return res.status(400).json({ error: "Event ID is required" });
         }
         const eventId = id as string;
+        const admin = (req as any).admin; // Get admin from verifyToken middleware
+        
         const event = await prisma.event.update({
             where: { id: eventId },
-            data: { isApproved: true }
+            data: { 
+                isApproved: true,
+                status: 'imported',
+                importedAt: new Date(),
+                importedBy: admin.email || admin.name || 'Admin'
+            }
         });
         res.status(200).json(event);
     } catch (error) {
+        console.error('Failed to import event:', error);
         res.status(500).json({ error: "Failed to update event" });
+    }
+})
+
+// Create event lead (save email when user clicks "Get Tickets")
+app.post("/events/:id/lead", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { email, consent, originalEventUrl } = req.body;
+
+        if (!id || Array.isArray(id)) {
+            return res.status(400).json({ error: "Event ID is required" });
+        }
+
+        if (!email || !email.trim()) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email.trim())) {
+            return res.status(400).json({ error: "Invalid email format" });
+        }
+
+        const eventId = id as string;
+
+        // Verify event exists
+        const event = await prisma.event.findUnique({
+            where: { id: eventId }
+        });
+
+        if (!event) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
+        // Check if lead already exists for this email and event
+        const existingLead = await prisma.eventLead.findFirst({
+            where: {
+                eventId: eventId,
+                email: email.trim().toLowerCase()
+            }
+        });
+
+        if (existingLead) {
+            // Update existing lead
+            const updatedLead = await prisma.eventLead.update({
+                where: { id: existingLead.id },
+                data: {
+                    consent: consent || false,
+                    originalEventUrl: originalEventUrl || event.originalUrl,
+                    redirectedAt: new Date()
+                }
+            });
+            return res.status(200).json(updatedLead);
+        }
+
+        // Create new lead
+        const lead = await prisma.eventLead.create({
+            data: {
+                email: email.trim().toLowerCase(),
+                eventId: eventId,
+                consent: consent || false,
+                originalEventUrl: originalEventUrl || event.originalUrl,
+                redirectedAt: new Date()
+            }
+        });
+
+        res.status(201).json(lead);
+    } catch (error: any) {
+        console.error('Failed to create event lead:', error);
+        if (error.code === 'P2002') {
+            return res.status(409).json({ error: "Lead already exists" });
+        }
+        res.status(500).json({ error: "Failed to save lead" });
     }
 })
 

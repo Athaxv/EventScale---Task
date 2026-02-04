@@ -150,3 +150,43 @@ export async function approveEvent(eventId: string): Promise<ApiEvent> {
   return response.json();
 }
 
+/**
+ * Create an event lead (save email when user clicks "Get Tickets")
+ */
+export interface CreateEventLeadRequest {
+  email: string;
+  consent: boolean;
+  originalEventUrl?: string;
+}
+
+export interface EventLead {
+  id: string;
+  email: string;
+  eventId: string;
+  consent: boolean;
+  redirectedAt: string | null;
+  originalEventUrl: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function createEventLead(
+  eventId: string, 
+  data: CreateEventLeadRequest
+): Promise<EventLead> {
+  const response = await fetch(`${API_BASE_URL}/events/${eventId}/lead`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(data),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `Failed to save lead: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
