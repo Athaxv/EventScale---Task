@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import Navbar from './Navbar';
 import InfiniteTicker from './InfiniteTicker';
 import BentoGrid from './BentoGrid';
 import Footer from './Footer';
 import Stats from './Stats';
-import { Toaster, useToast } from './Sonner';
 import { Event } from '../types';
 import { getAIEventRecommendations } from '../services/geminiService';
 import { fetchApprovedEvents } from '../services/api';
@@ -14,7 +14,6 @@ import { Sparkles, ArrowRight, Bird } from 'lucide-react';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
-  const { toasts, addToast } = useToast();
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiResponse, setAiResponse] = useState<string | null>(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
@@ -27,15 +26,17 @@ const LandingPage: React.FC = () => {
         const apiEvents = await fetchApprovedEvents();
         const transformedEvents = transformApiEvents(apiEvents);
         setEvents(transformedEvents.slice(0, 4)); // Show first 4 events
-      } catch (error) {
+      } catch (error: any) {
         console.error('Failed to load events:', error);
-        addToast('Failed to load events', 'info');
+        toast.error('Failed to load events', {
+          description: 'Some events may not be displayed'
+        });
       } finally {
         setEventsLoading(false);
       }
     };
     loadEvents();
-  }, [addToast]);
+  }, []);
 
   const handleBookClick = () => {
     navigate('/marketplace');
@@ -48,15 +49,19 @@ const LandingPage: React.FC = () => {
     
     setIsAiLoading(true);
     setAiResponse(null);
-    try {
-        const result = await getAIEventRecommendations(aiPrompt);
-        setAiResponse(result);
-        addToast('AI Recommendations loaded', 'success');
-    } catch (err) {
-        addToast('Failed to fetch AI results', 'info');
-    } finally {
-        setIsAiLoading(false);
-    }
+        try {
+            toast.loading('Finding events...', { id: 'ai-search' });
+            const result = await getAIEventRecommendations(aiPrompt);
+            setAiResponse(result);
+            toast.success('AI Recommendations loaded', { id: 'ai-search' });
+        } catch (err: any) {
+            toast.error('Failed to fetch AI results', { 
+                id: 'ai-search',
+                description: err.message || 'Please try again'
+            });
+        } finally {
+            setIsAiLoading(false);
+        }
   };
 
   return (
@@ -186,8 +191,6 @@ const LandingPage: React.FC = () => {
       </section>
 
       <Footer />
-
-      <Toaster toasts={toasts} />
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { toast } from 'sonner';
 import AdminSidebar from './AdminSidebar';
 import { Search, MapPin, Calendar, Filter, MoreHorizontal, ArrowUpRight, Plus, RefreshCw, Archive, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import { Event, EventStatus } from '../../types';
@@ -30,9 +31,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           : await fetchAdminEvents();
         const transformedEvents = transformApiEvents(apiEvents);
         setEvents(transformedEvents);
-      } catch (err) {
+        toast.success(`Loaded ${transformedEvents.length} ${activeTab === 'imported' ? 'imported' : 'pending'} events`);
+      } catch (err: any) {
         console.error('Failed to fetch events:', err);
-        setError('Failed to load events. Please try again.');
+        const errorMessage = err.message?.includes('Unauthorized') 
+          ? 'Session expired. Please log in again.'
+          : 'Failed to load events. Please try again.';
+        setError(errorMessage);
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
       }
@@ -46,23 +52,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   }, [events]);
 
   const handleImportEvent = async (eventId: string) => {
-    const notes = window.prompt("Enter optional import notes:", "Standard batch import");
+    const event = events.find(e => e.id === eventId);
+    const eventTitle = event?.title || 'Event';
     
     try {
+      toast.loading(`Importing ${eventTitle}...`, { id: `import-${eventId}` });
       await approveEvent(eventId);
-      // Update local state to reflect the approval
-      setEvents(prevEvents => prevEvents.map(event => {
-        if (event.id === eventId) {
-          return {
-            ...event,
-            status: 'imported',
-            importedAt: new Date().toISOString(),
-            importedBy: 'Admin',
-            importNotes: notes || ''
-          };
-        }
-        return event;
-      }));
+      
+      toast.success(`Successfully imported "${eventTitle}"`, { id: `import-${eventId}` });
+      
       // Refresh the list to remove approved events (only if on dashboard tab)
       if (activeTab === 'dashboard') {
         const apiEvents = await fetchAdminEvents();
@@ -71,11 +69,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       }
     } catch (err: any) {
       console.error('Failed to approve event:', err);
+      toast.error(`Failed to import "${eventTitle}"`, { id: `import-${eventId}` });
+      
       if (err.message?.includes('Unauthorized')) {
-        alert('Session expired. Please log in again.');
-        onLogout();
-      } else {
-        alert('Failed to approve event. Please try again.');
+        toast.error('Session expired. Please log in again.');
+        setTimeout(() => onLogout(), 2000);
       }
     }
   };

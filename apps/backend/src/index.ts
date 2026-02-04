@@ -18,7 +18,13 @@ app.use(cors({
 app.use(express.json());
 
 const prisma = getPrisma();
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// Initialize Google OAuth client (will be undefined if not configured)
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+if (!GOOGLE_CLIENT_ID) {
+    console.warn('⚠️  WARNING: GOOGLE_CLIENT_ID is not set in environment variables');
+}
+const client = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 
 // Middleware to verify JWT token
 const verifyToken = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -61,13 +67,16 @@ app.post("/auth/google", async (req, res) => {
         }
 
         // Verify the Google token
-        if (!process.env.GOOGLE_CLIENT_ID) {
-            return res.status(500).json({ error: "Google Client ID not configured" });
+        if (!GOOGLE_CLIENT_ID || !client) {
+            console.error('GOOGLE_CLIENT_ID is not configured in backend .env file');
+            return res.status(500).json({ 
+                error: "Google Client ID not configured. Please set GOOGLE_CLIENT_ID in apps/backend/.env" 
+            });
         }
 
         const ticket = await client.verifyIdToken({
             idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: GOOGLE_CLIENT_ID,
         });
 
         const payload = ticket.getPayload();

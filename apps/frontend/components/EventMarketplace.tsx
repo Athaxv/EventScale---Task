@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Event } from '../types';
 import { MapPin, Calendar, ExternalLink, ArrowRight } from 'lucide-react';
 import Navbar from './Navbar';
 import TicketModal from './TicketModal';
-import { useToast } from './Sonner';
 import { fetchApprovedEvents } from '../services/api';
 import { transformApiEvents } from '../utils/eventTransformer';
 
@@ -14,7 +14,6 @@ const EventMarketplace: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { addToast } = useToast();
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -24,16 +23,19 @@ const EventMarketplace: React.FC = () => {
         const apiEvents = await fetchApprovedEvents();
         const transformedEvents = transformApiEvents(apiEvents);
         setEvents(transformedEvents);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to fetch events:', err);
-        setError('Failed to load events. Please try again.');
-        addToast('Failed to load events', 'info');
+        const errorMessage = 'Failed to load events. Please try again.';
+        setError(errorMessage);
+        toast.error('Failed to load events', {
+          description: 'Please refresh the page or try again later'
+        });
       } finally {
         setIsLoading(false);
       }
     };
     loadEvents();
-  }, [addToast]);
+  }, []);
 
   
 
@@ -43,7 +45,9 @@ const EventMarketplace: React.FC = () => {
 
   const handleTicketSuccess = (email: string, consent: boolean) => {
     console.log(`Saving to DB: Email=${email}, Consent=${consent}, Event=${selectedEvent?.id}`);
-    addToast("Redirecting to ticket provider...", "success");
+    toast.success('Redirecting to ticket provider...', {
+      description: `Opening ${selectedEvent?.title || 'event'} tickets`
+    });
     
     // Simulate redirection delay
     setTimeout(() => {

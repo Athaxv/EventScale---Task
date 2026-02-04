@@ -2,14 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { authenticateWithGoogle } from '../services/api';
-import { useToast } from './Sonner';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const { addToast } = useToast();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -17,30 +16,49 @@ const Login: React.FC = () => {
   const handleGoogleSuccess = async (credentialResponse: any) => {
     try {
       setIsGoogleLoading(true);
+      console.log('Google OAuth success, credential received');
+      
       if (!credentialResponse.credential) {
         throw new Error('No credential received from Google');
       }
       
+      console.log('Authenticating with backend...');
       const response = await authenticateWithGoogle(credentialResponse.credential);
+      console.log('Backend authentication successful:', response);
+      
       login(response.admin, response.token);
-      addToast('Successfully logged in!', 'success');
-      navigate('/admin');
+      console.log('Admin logged in, redirecting to /admin');
+      toast.success('Successfully logged in!', {
+        description: `Welcome back, ${response.admin.name}!`
+      });
+      
+      // Use setTimeout to ensure state updates are processed
+      setTimeout(() => {
+        navigate('/admin', { replace: true });
+      }, 100);
     } catch (error: any) {
       console.error('Google login error:', error);
-      addToast(error.message || 'Failed to login with Google', 'info');
+      toast.error('Failed to login with Google', {
+        description: error.message || 'Please try again'
+      });
     } finally {
       setIsGoogleLoading(false);
     }
   };
 
   const handleGoogleError = () => {
-    addToast('Google login failed', 'info');
+    toast.error('Google login failed', {
+      description: 'Please try again or contact support'
+    });
     setIsGoogleLoading(false);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    toast.info('Email login is not yet implemented', {
+      description: 'Please use Google Sign-In for admin access'
+    });
     // Simulate API call
     setTimeout(() => setIsLoading(false), 2000);
   };
@@ -83,18 +101,25 @@ const Login: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-center">
-              <GoogleLogin
-                onSuccess={handleGoogleSuccess}
-                onError={handleGoogleError}
-                useOneTap={false}
-                theme="outline"
-                size="large"
-                text="signin_with"
-                shape="rectangular"
-                logo_alignment="left"
-              />
-            </div>
+            {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  useOneTap={false}
+                  theme="outline"
+                  size="large"
+                  text="signin_with"
+                  shape="rectangular"
+                  logo_alignment="left"
+                />
+              </div>
+            ) : (
+              <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
+                <p className="font-semibold mb-1">Google OAuth not configured</p>
+                <p>Please set VITE_GOOGLE_CLIENT_ID in your .env file</p>
+              </div>
+            )}
 
             <div className="relative flex items-center justify-center my-6">
               <div className="absolute inset-0 flex items-center">
