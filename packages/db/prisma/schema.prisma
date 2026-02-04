@@ -1,0 +1,110 @@
+// Prisma Schema for Events Platform with NeonDB
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Admin {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String   @db.VarChar(255)
+  email      String   @unique @db.VarChar(255)
+  avatar     String?  @db.VarChar(500)
+  provider   Provider @default(email)
+  providerId String?  @map("provider_id") @db.VarChar(255)
+  password   String?  @db.VarChar(255)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  importedEvents Event[]
+
+  @@index([email])
+  @@index([provider])
+  @@map("admins")
+}
+
+model Event {
+  id              String   @id @default(uuid()) @db.Uuid
+  title           String   @db.VarChar(500)
+  description     String   @db.Text
+  summary         String   @db.VarChar(500)
+  venueName       String   @map("venue_name") @db.VarChar(255)
+  venueAddress    String   @map("venue_address") @db.VarChar(500)
+  city            String   @default("Sydney") @db.VarChar(100)
+  category        String   @db.VarChar(100)
+  dateTimeStart   DateTime @map("date_time_start") @db.Timestamptz(6)
+  dateTimeEnd     DateTime @map("date_time_end") @db.Timestamptz(6)
+  dateTimeTimezone String  @default("Australia/Sydney") @map("date_time_timezone") @db.VarChar(100)
+  imageUrl        String?  @map("image_url") @db.VarChar(500)
+  posterUrl       String?  @map("poster_url") @db.VarChar(500)
+  sourceWebsite   String   @map("source_website") @db.VarChar(100)
+  originalUrl     String   @unique @map("original_url") @db.VarChar(500)
+  lastScrapedAt   DateTime? @map("last_scraped_at") @db.Timestamptz(6)
+  status          EventStatus @default(new)
+  importedAt      DateTime? @map("imported_at") @db.Timestamptz(6)
+  importedBy      String?  @map("imported_by") @db.Uuid
+  importNotes     String?  @map("import_notes") @db.Text
+  isApproved      Boolean  @default(false) @map("is_approved")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  importedByAdmin Admin?   @relation(fields: [importedBy], references: [id], onDelete: SetNull)
+  leads           EventLead[]
+
+  @@index([status])
+  @@index([category])
+  @@index([city])
+  @@index([isApproved])
+  @@index([importedBy])
+  @@index([lastScrapedAt])
+  @@index([importedAt])
+  @@index([sourceWebsite])
+  @@index([originalUrl])
+  @@index([dateTimeStart])
+  @@index([isApproved, status])
+  @@index([city, isApproved, status])
+  @@index([sourceWebsite, lastScrapedAt])
+  @@map("events")
+}
+
+model EventLead {
+  id              String   @id @default(uuid()) @db.Uuid
+  email           String   @db.VarChar(255)
+  eventId         String   @map("event_id") @db.Uuid
+  consent         Boolean  @default(false)
+  redirectedAt    DateTime? @map("redirected_at") @db.Timestamptz(6)
+  originalEventUrl String  @map("original_event_url") @db.VarChar(500)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  // Relations
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([eventId])
+  @@index([consent])
+  @@index([createdAt])
+  @@index([eventId, email])
+  @@map("event_leads")
+}
+
+enum Provider {
+  google
+  email
+
+  @@map("provider")
+}
+
+enum EventStatus {
+  new
+  updated
+  inactive
+  imported
+
+  @@map("event_status")
+}

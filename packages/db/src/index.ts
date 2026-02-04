@@ -1,59 +1,49 @@
-import mongoose, { type ConnectOptions } from "mongoose";
+import { PrismaClient } from "./generated/prisma/index.js";
+import "dotenv/config";
 
+let prisma: PrismaClient | null = null;
 let isConnected = false;
 
-export async function connectDB(uri: string): Promise<void> {
-  if (isConnected) {
-    console.log("MongoDB already connected");
+export async function connectDB(connectionString?: string): Promise<void> {
+  if (isConnected && prisma) {
+    console.log("Database already connected");
     return;
   }
 
-  if (!uri) {
-    throw new Error("MONGODB_URI not provided");
+  const databaseUrl = connectionString || process.env.DATABASE_URL;
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL not provided");
   }
 
   try {
-    await mongoose.connect(uri, {
-      dbName: "events_platform"
-    } as ConnectOptions);
+    // Prisma 7: Connection URL is read from prisma.config.ts or DATABASE_URL env var
+    // We can override it by setting the env var before creating the client
+    if (connectionString && connectionString !== process.env.DATABASE_URL) {
+      process.env.DATABASE_URL = connectionString;
+    }
+    
+    prisma = new PrismaClient({
+      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"]
+    });
+
+    // Test connection
+    await prisma.$connect();
 
     isConnected = true;
-    console.log("✅ MongoDB connected");
-
-    // Handle connection events
-    const connection = mongoose.connection as any;
-    connection.on("error", (err: Error) => {
-      console.error("MongoDB connection error:", err);
-      isConnected = false;
-    });
-
-    connection.on("disconnected", () => {
-      console.log("MongoDB disconnected");
-      isConnected = false;
-    });
-
-    connection.on("reconnected", () => {
-      console.log("MongoDB reconnected");
-      isConnected = true;
-    });
+    console.log("✅ NeonDB (PostgreSQL) connected via Prisma");
   } catch (error) {
-    console.error("Failed to connect to MongoDB:", error);
+    console.error("Failed to connect to NeonDB:", error);
     isConnected = false;
     throw error;
   }
 }
 
-export async function disconnectDB(): Promise<void> {
-  if (!isConnected) return;
+// Export Prisma types (with aliases to avoid conflicts)
+export type { 
+  Admin as PrismaAdmin, 
+  Event as PrismaEvent, 
+  EventLead as PrismaEventLead, 
+  Provider, 
+  EventStatus 
+} from "./generated/prisma/index.js";
 
-  await mongoose.disconnect();
-  isConnected = false;
-  console.log("MongoDB disconnected");
-}
-
-export { mongoose };
-
-// Export models
-export * from "./models/Event";
-export * from "./models/EventLead";
-export * from "./models/Admin";
