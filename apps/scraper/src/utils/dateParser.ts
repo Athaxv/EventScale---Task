@@ -33,6 +33,12 @@ export function parseEventDate(dateString: string, timezone: string = "Australia
     const commonFormatMatch = trimmed.match(/(\w{3}),?\s+(\w{3})\s+(\d{1,2}),?\s+(\d{4})\s+(?:at\s+)?(\d{1,2}):(\d{2})\s*(AM|PM)/i);
     if (commonFormatMatch) {
         const [, , monthName, day, year, hour, minute, ampm] = commonFormatMatch;
+        
+        // Validate all required values are present
+        if (!monthName || !day || !year || !hour || !minute || !ampm) {
+            throw new Error(`Incomplete date match: ${trimmed}`);
+        }
+        
         const monthMap: Record<string, number> = {
             jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
             jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11
@@ -40,8 +46,9 @@ export function parseEventDate(dateString: string, timezone: string = "Australia
         const month = monthMap[monthName.toLowerCase()];
         if (month !== undefined) {
             let hour24 = parseInt(hour);
-            if (ampm.toUpperCase() === 'PM' && hour24 !== 12) hour24 += 12;
-            if (ampm.toUpperCase() === 'AM' && hour24 === 12) hour24 = 0;
+            const ampmUpper = ampm.toUpperCase();
+            if (ampmUpper === 'PM' && hour24 !== 12) hour24 += 12;
+            if (ampmUpper === 'AM' && hour24 === 12) hour24 = 0;
             
             const startDate = new Date(parseInt(year), month, parseInt(day), hour24, parseInt(minute));
             const endDate = new Date(startDate);
