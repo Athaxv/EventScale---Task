@@ -1,7 +1,7 @@
 // Prisma Schema for Events Platform with NeonDB
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
+  output   = "../dist/generated/prisma"
 }
 
 datasource db {
@@ -18,9 +18,6 @@ model Admin {
   password   String?  @db.VarChar(255)
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
-
-  // Relations
-  importedEvents Event[]
 
   @@index([email])
   @@index([provider])
@@ -42,33 +39,30 @@ model Event {
   imageUrl        String?  @map("image_url") @db.VarChar(500)
   posterUrl       String?  @map("poster_url") @db.VarChar(500)
   sourceWebsite   String   @map("source_website") @db.VarChar(100)
+  sourceEventId   String?  @map("source_event_id") @db.VarChar(255)
   originalUrl     String   @unique @map("original_url") @db.VarChar(500)
   lastScrapedAt   DateTime? @map("last_scraped_at") @db.Timestamptz(6)
   status          EventStatus @default(new)
-  importedAt      DateTime? @map("imported_at") @db.Timestamptz(6)
-  importedBy      String?  @map("imported_by") @db.Uuid
-  importNotes     String?  @map("import_notes") @db.Text
+  hash            String   @unique @map("hash") @db.VarChar(255)
   isApproved      Boolean  @default(false) @map("is_approved")
   createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   // Relations
-  importedByAdmin Admin?   @relation(fields: [importedBy], references: [id], onDelete: SetNull)
   leads           EventLead[]
 
   @@index([status])
   @@index([category])
   @@index([city])
   @@index([isApproved])
-  @@index([importedBy])
   @@index([lastScrapedAt])
-  @@index([importedAt])
   @@index([sourceWebsite])
   @@index([originalUrl])
   @@index([dateTimeStart])
   @@index([isApproved, status])
   @@index([city, isApproved, status])
   @@index([sourceWebsite, lastScrapedAt])
+  @@unique([sourceEventId, sourceWebsite])
   @@map("events")
 }
 

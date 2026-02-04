@@ -1,4 +1,6 @@
 import { PrismaClient } from "./generated/prisma/index.js";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 import "dotenv/config";
 
 let prisma: PrismaClient | null = null;
@@ -16,14 +18,14 @@ export async function connectDB(connectionString?: string): Promise<void> {
   }
 
   try {
-    // Prisma 7: Connection URL is read from prisma.config.ts or DATABASE_URL env var
-    // We can override it by setting the env var before creating the client
-    if (connectionString && connectionString !== process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = connectionString;
-    }
+    // Prisma 7: Requires adapter for PostgreSQL
+    const pool = new Pool({ connectionString: databaseUrl });
+    const adapter = new PrismaPg(pool);
     
     prisma = new PrismaClient({
-      log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"]
+      adapter,
+      log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+      errorFormat: "minimal" // Reduce verbose error output
     });
 
     // Test connection
@@ -38,12 +40,29 @@ export async function connectDB(connectionString?: string): Promise<void> {
   }
 }
 
-// Export Prisma types (with aliases to avoid conflicts)
+export async function disconnectDB(): Promise<void> {
+  if (!isConnected || !prisma) return;
+
+  await prisma.$disconnect();
+  prisma = null;
+  isConnected = false;
+  console.log("Database disconnected");
+}
+
+export function getPrisma(): PrismaClient {
+  if (!prisma) {
+    throw new Error("Database not connected. Call connectDB() first.");
+  }
+  return prisma;
+}
+
+// Export PrismaClient and all Prisma types directly
+export { PrismaClient, Prisma } from "./generated/prisma/index.js";
 export type { 
-  Admin as PrismaAdmin, 
-  Event as PrismaEvent, 
-  EventLead as PrismaEventLead, 
+  Admin, 
+  Event, 
+  EventLead, 
   Provider, 
-  EventStatus 
+  EventStatus
 } from "./generated/prisma/index.js";
 
