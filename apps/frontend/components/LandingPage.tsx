@@ -85,7 +85,7 @@ const LandingPage: React.FC = () => {
                 onClick={handleBookClick}
                 className="bg-brand-green hover:bg-green-300 text-black text-lg px-8 py-4 rounded-full font-medium transition-all transform hover:scale-105 active:scale-95 shadow-xl shadow-green-200/50"
             >
-                Book a Demo
+                Check out events
             </button>
         </div>
       </section>
@@ -178,15 +178,15 @@ const LandingPage: React.FC = () => {
       {/* CTA Section */}
       <section className="py-32 px-6 text-center bg-brand-green/10">
           <h2 className="text-5xl md:text-7xl font-serif leading-tight mb-6">
-            Book a free, 15-minute demo <br/>
-            with a real human person.
+            Discover amazing events <br/>
+            happening around you.
           </h2>
-          <p className="text-gray-600 text-lg mb-10">See your operations streamlined by the power of EventScale.</p>
+          <p className="text-gray-600 text-lg mb-10">Explore curated events from around Sydney and find your next adventure.</p>
           <button 
             onClick={handleBookClick}
             className="bg-brand-green hover:bg-green-300 text-black px-10 py-4 rounded-full text-lg font-medium transition-transform transform hover:scale-105 shadow-xl shadow-green-200/50"
           >
-            Book a Demo
+            Check out events
           </button>
       </section>
 

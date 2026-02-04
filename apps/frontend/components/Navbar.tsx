@@ -69,7 +69,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, onBookDemoClick }) => {
             onClick={onBookDemoClick || (() => window.dispatchEvent(new CustomEvent('navigate-marketplace')))}
             className="bg-brand-green hover:bg-green-300 text-black px-6 py-2.5 rounded-full text-sm font-medium transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-green-200/50"
           >
-            Book a Demo
+            Check out events
           </button>
         </div>
 
@@ -104,7 +104,7 @@ const Navbar: React.FC<NavbarProps> = ({ onSignInClick, onBookDemoClick }) => {
             }}
             className="w-full bg-brand-green text-black py-3 rounded-full font-medium"
           >
-            Book a Demo
+            Check out events
           </button>
         </div>
       )}

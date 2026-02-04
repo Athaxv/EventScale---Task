@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
-import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '../contexts/AuthContext';
 import { authenticateWithGoogle } from '../services/api';
@@ -9,8 +9,6 @@ import { authenticateWithGoogle } from '../services/api';
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const handleGoogleSuccess = async (credentialResponse: any) => {
@@ -53,16 +51,6 @@ const Login: React.FC = () => {
     setIsGoogleLoading(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-    toast.info('Email login is not yet implemented', {
-      description: 'Please use Google Sign-In for admin access'
-    });
-    // Simulate API call
-    setTimeout(() => setIsLoading(false), 2000);
-  };
-
   return (
     <div className="min-h-screen flex bg-[#fdfdfc] animate-in fade-in duration-500">
       {/* Left: Image Side (Desktop) */}
@@ -97,22 +85,26 @@ const Login: React.FC = () => {
         <div className="max-w-sm w-full mx-auto space-y-10">
           <div className="text-center">
             <h1 className="text-4xl font-serif font-medium mb-3">Welcome</h1>
-            <p className="text-gray-500">Enter your details to continue.</p>
+            <p className="text-gray-500">Sign in with Google to access the admin dashboard.</p>
           </div>
 
           <div className="space-y-4">
             {import.meta.env.VITE_GOOGLE_CLIENT_ID ? (
-              <div className="flex justify-center">
-                <GoogleLogin
-                  onSuccess={handleGoogleSuccess}
-                  onError={handleGoogleError}
-                  useOneTap={false}
-                  theme="outline"
-                  size="large"
-                  text="signin_with"
-                  shape="rectangular"
-                  logo_alignment="left"
-                />
+              <div className="w-full flex justify-center">
+                <div className="w-full max-w-[320px]">
+                  <div className="[&>div]:w-full [&>div>div]:w-full [&>div>div>div]:w-full">
+                    <GoogleLogin
+                      onSuccess={handleGoogleSuccess}
+                      onError={handleGoogleError}
+                      useOneTap={false}
+                      theme="outline"
+                      size="large"
+                      text="signin_with"
+                      shape="rectangular"
+                      logo_alignment="left"
+                    />
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
@@ -120,35 +112,6 @@ const Login: React.FC = () => {
                 <p>Please set VITE_GOOGLE_CLIENT_ID in your .env file</p>
               </div>
             )}
-
-            <div className="relative flex items-center justify-center my-6">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
-              </div>
-              <span className="relative bg-[#fdfdfc] px-4 text-xs uppercase tracking-widest text-gray-400 font-medium">Or</span>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold uppercase tracking-wide text-gray-500 ml-1">Email Address</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3.5 focus:outline-none focus:ring-2 focus:ring-black/5 focus:border-black transition-all placeholder-gray-400 text-gray-800"
-                  placeholder="name@example.com"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-800 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-gray-200"
-              >
-                <span>{isLoading ? 'Sending Link...' : 'Continue with Email'}</span>
-                {!isLoading && <ArrowRight size={16} />}
-              </button>
-            </form>
           </div>
 
           <div className="text-center pt-8 border-t border-gray-100 mt-4">

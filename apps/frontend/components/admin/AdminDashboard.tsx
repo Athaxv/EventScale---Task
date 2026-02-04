@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { toast } from 'sonner';
 import AdminSidebar from './AdminSidebar';
-import { Search, MapPin, Calendar, Filter, MoreHorizontal, ArrowUpRight, Plus, RefreshCw, Archive, CheckCircle, AlertCircle, Download } from 'lucide-react';
+import { Search, MapPin, Calendar, Filter, MoreHorizontal, ArrowUpRight, RefreshCw, Archive, CheckCircle, AlertCircle, Download } from 'lucide-react';
 import { Event, EventStatus } from '../../types';
 import { fetchAdminEvents, fetchImportedEvents, approveEvent } from '../../services/api';
 import { transformApiEvents } from '../../utils/eventTransformer';
@@ -150,17 +150,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       
       <main className="ml-64 flex-1 p-8 md:p-12 max-w-7xl">
         {/* Header */}
-        <header className="flex justify-between items-center mb-10">
+        <header className="mb-10">
           <div>
              <h1 className="text-3xl font-serif font-medium mb-1">
                {activeTab === 'imported' ? 'Imported Events' : 'Dashboard'}
              </h1>
              <p className="text-gray-500 text-sm">Welcome back, Admin. Here is what's happening.</p>
           </div>
-          <button className="bg-brand-green hover:bg-green-300 text-black px-5 py-2.5 rounded-full text-sm font-medium flex items-center space-x-2 transition-colors shadow-sm">
-             <Plus size={16} />
-             <span>Create Event</span>
-          </button>
         </header>
 
         {/* Filters Bar */}
