@@ -14,7 +14,7 @@ async function runScraper() {
   try {
     await connectDB();
     console.log("🔍 Scraping events...");
-    await scrapeEventbrite();
+    await scrapeEventbrite()
     console.log("✅ Scraped events");
   } catch (error) {
     console.error("❌ Scraper failed", error);

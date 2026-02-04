@@ -1,0 +1,26 @@
+# Fly.io configuration for scraper cron job
+app = "your-scraper-app-name"
+primary_region = "syd"  # Sydney region (closest to your target city)
+
+[build]
+  dockerfile = "apps/scraper/Dockerfile"
+  dockerfile_context = "."
+
+[env]
+  NODE_ENV = "production"
+
+# Configure the app as a cron job
+# Fly.io doesn't have native cron, so we run it as a persistent app
+# The app itself handles scheduling via node-cron
+[processes]
+  app = "pnpm start"
+
+# Machine configuration
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 1024  # Increased for Playwright
+
+# No HTTP services needed - this is a background cron job
+# The app runs continuously and schedules tasks internally
+
