@@ -1,50 +1,90 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import AdminSidebar from './AdminSidebar';
 import { Search, MapPin, Calendar, Filter, MoreHorizontal, ArrowUpRight, Plus, RefreshCw, Archive, CheckCircle, AlertCircle, Download } from 'lucide-react';
-import { MOCK_EVENTS } from '../../constants';
 import { Event, EventStatus } from '../../types';
+import { fetchAdminEvents, fetchImportedEvents, approveEvent } from '../../services/api';
+import { transformApiEvents } from '../../utils/eventTransformer';
 
 interface AdminDashboardProps {
   onLogout: () => void;
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-  const [events, setEvents] = useState<Event[]>(MOCK_EVENTS);
+  const [events, setEvents] = useState<Event[]>([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        // Fetch different events based on active tab
+        const apiEvents = activeTab === 'imported' 
+          ? await fetchImportedEvents()
+          : await fetchAdminEvents();
+        const transformedEvents = transformApiEvents(apiEvents);
+        setEvents(transformedEvents);
+      } catch (err) {
+        console.error('Failed to fetch events:', err);
+        setError('Failed to load events. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadEvents();
+  }, [activeTab])
 
   // Extract unique locations for the filter dropdown
   const locations = useMemo(() => {
     return Array.from(new Set(events.map(e => e.location.split(',')[0].trim())));
   }, [events]);
 
-  const handleImportEvent = (eventId: string) => {
+  const handleImportEvent = async (eventId: string) => {
     const notes = window.prompt("Enter optional import notes:", "Standard batch import");
     
-    setEvents(prevEvents => prevEvents.map(event => {
-      if (event.id === eventId) {
-        return {
-          ...event,
-          status: 'imported',
-          importedAt: new Date().toISOString(),
-          importedBy: 'Admin',
-          importNotes: notes || ''
-        };
+    try {
+      await approveEvent(eventId);
+      // Update local state to reflect the approval
+      setEvents(prevEvents => prevEvents.map(event => {
+        if (event.id === eventId) {
+          return {
+            ...event,
+            status: 'imported',
+            importedAt: new Date().toISOString(),
+            importedBy: 'Admin',
+            importNotes: notes || ''
+          };
+        }
+        return event;
+      }));
+      // Refresh the list to remove approved events (only if on dashboard tab)
+      if (activeTab === 'dashboard') {
+        const apiEvents = await fetchAdminEvents();
+        const transformedEvents = transformApiEvents(apiEvents);
+        setEvents(transformedEvents);
       }
-      return event;
-    }));
+    } catch (err: any) {
+      console.error('Failed to approve event:', err);
+      if (err.message?.includes('Unauthorized')) {
+        alert('Session expired. Please log in again.');
+        onLogout();
+      } else {
+        alert('Failed to approve event. Please try again.');
+      }
+    }
   };
 
   // Filter Logic
   const filteredEvents = useMemo(() => {
     return events.filter((event) => {
-      // Tab Filter
-      if (activeTab === 'imported' && event.status !== 'imported') {
-        return false;
-      }
+      // Note: Tab filtering is handled by fetching different data sets,
+      // so we don't need to filter by status here
 
       // Keyword Match
       const matchesKeyword = 
@@ -195,13 +235,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       <th className="px-6 py-4 font-medium">Event Name</th>
                       <th className="px-6 py-4 font-medium">Date</th>
                       <th className="px-6 py-4 font-medium">Location</th>
-                      <th className="px-6 py-4 font-medium">Price</th>
                       <th className="px-6 py-4 font-medium">Status</th>
                       <th className="px-6 py-4 font-medium text-right">Action</th>
                    </tr>
                 </thead>
                 <tbody className="text-sm">
-                   {filteredEvents.length > 0 ? (
+                   {isLoading ? (
+                      <tr>
+                         <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                            Loading events...
+                         </td>
+                      </tr>
+                   ) : error ? (
+                      <tr>
+                         <td colSpan={5} className="px-6 py-12 text-center text-red-500">
+                            {error}
+                         </td>
+                      </tr>
+                   ) : filteredEvents.length > 0 ? (
                       filteredEvents.map((event) => {
                          const statusConfig = getStatusConfig(event.status);
                          const StatusIcon = statusConfig.icon;
@@ -235,9 +286,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                     <span>{event.location}</span>
                                  </div>
                               </td>
-                              <td className="px-6 py-4 font-medium">
-                                 ${event.price}
-                              </td>
                               <td className="px-6 py-4">
                                  <span className={`inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-full text-xs font-medium border ${statusConfig.color}`}>
                                     <StatusIcon size={12} />
@@ -245,17 +293,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                                  </span>
                               </td>
                               <td className="px-6 py-4 text-right">
-                                 {event.status !== 'imported' ? (
+                                 {activeTab === 'imported' ? (
+                                    <button className="text-gray-400 hover:text-black transition-colors">
+                                       <MoreHorizontal size={20} />
+                                    </button>
+                                 ) : (
                                     <button 
                                       onClick={() => handleImportEvent(event.id)}
                                       className="inline-flex items-center space-x-1.5 bg-black text-white px-3 py-1.5 rounded-lg text-xs font-medium hover:bg-gray-800 transition-colors shadow-sm"
                                     >
                                       <Download size={12} />
                                       <span>Import</span>
-                                    </button>
-                                 ) : (
-                                    <button className="text-gray-400 hover:text-black transition-colors">
-                                       <MoreHorizontal size={20} />
                                     </button>
                                  )}
                               </td>
@@ -264,7 +312,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       })
                    ) : (
                       <tr>
-                         <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
+                         <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
                             {activeTab === 'imported' 
                               ? "No imported events found." 
                               : "No events found matching your filters."}

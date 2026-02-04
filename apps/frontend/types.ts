@@ -6,7 +6,6 @@ export interface Event {
   date: string;
   location: string;
   category: string;
-  price: number;
   image: string;
   tags: string[];
   status?: EventStatus;

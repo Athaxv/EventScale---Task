@@ -68,7 +68,7 @@ const HeroDialog: React.FC<HeroDialogProps> = ({ isOpen, onClose, event }) => {
                             <div className={`w-4 h-4 rounded-full border-2 ${idx === 0 ? 'border-brand-green bg-brand-green' : 'border-gray-300 group-hover:border-brand-green'}`} />
                             <span className="font-medium text-sm">{type}</span>
                         </div>
-                        <span className="font-serif italic text-gray-500">${event ? Math.round(event.price * (1 + idx * 0.5)) : 50}</span>
+                        <span className="font-serif italic text-gray-500">TBA</span>
                       </div>
                     ))}
                   </div>
@@ -95,7 +95,7 @@ const HeroDialog: React.FC<HeroDialogProps> = ({ isOpen, onClose, event }) => {
                   className="w-full bg-black text-white py-4 rounded-xl font-medium hover:bg-gray-800 transition-colors flex items-center justify-center space-x-2"
                 >
                   <span>Checkout</span>
-                  <span className="bg-gray-700 text-xs px-2 py-1 rounded text-gray-200">${event?.price || 0}</span>
+                  <span className="bg-gray-700 text-xs px-2 py-1 rounded text-gray-200">TBA</span>
                 </button>
               ) : (
                 <button 

@@ -1,19 +1,41 @@
-import React, { useState } from 'react';
-import { MOCK_EVENTS } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Event } from '../types';
 import { MapPin, Calendar, ExternalLink, ArrowRight } from 'lucide-react';
 import Navbar from './Navbar';
 import TicketModal from './TicketModal';
 import { useToast } from './Sonner';
+import { fetchApprovedEvents } from '../services/api';
+import { transformApiEvents } from '../utils/eventTransformer';
 
-interface EventMarketplaceProps {
-  onBack: () => void;
-  onSignIn: () => void;
-}
-
-const EventMarketplace: React.FC<EventMarketplaceProps> = ({ onBack, onSignIn }) => {
+const EventMarketplace: React.FC = () => {
+  const navigate = useNavigate();
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const apiEvents = await fetchApprovedEvents();
+        const transformedEvents = transformApiEvents(apiEvents);
+        setEvents(transformedEvents);
+      } catch (err) {
+        console.error('Failed to fetch events:', err);
+        setError('Failed to load events. Please try again.');
+        addToast('Failed to load events', 'info');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadEvents();
+  }, [addToast]);
+
+  
 
   const handleGetTickets = (event: Event) => {
     setSelectedEvent(event);
@@ -36,11 +58,11 @@ const EventMarketplace: React.FC<EventMarketplaceProps> = ({ onBack, onSignIn })
 
   return (
     <div className="min-h-screen bg-[#f8f9fa] font-sans">
-      <Navbar onSignInClick={onSignIn} />
+      <Navbar onSignInClick={() => navigate('/login')} />
       
       <div className="pt-32 pb-20 px-6 max-w-7xl mx-auto">
         <div className="mb-12 text-center md:text-left">
-          <button onClick={onBack} className="text-sm text-gray-500 hover:text-black mb-4 flex items-center space-x-1">
+          <button onClick={() => navigate('/')} className="text-sm text-gray-500 hover:text-black mb-4 flex items-center space-x-1">
              <ArrowRight className="rotate-180" size={14} />
              <span>Back to Home</span>
           </button>
@@ -50,23 +72,27 @@ const EventMarketplace: React.FC<EventMarketplaceProps> = ({ onBack, onSignIn })
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {MOCK_EVENTS.map((event) => (
-            <div key={event.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
-              {/* Image */}
-              <div className="h-56 relative overflow-hidden">
-                <img 
-                  src={event.image} 
-                  alt={event.title} 
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                  ${event.price}
+        {isLoading ? (
+          <div className="text-center py-20 text-gray-500">Loading events...</div>
+        ) : error ? (
+          <div className="text-center py-20 text-red-500">{error}</div>
+        ) : events.length === 0 ? (
+          <div className="text-center py-20 text-gray-500">No events available at the moment.</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {events.map((event) => (
+              <div key={event.id} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:border-gray-200 hover:shadow-xl transition-all duration-300 group flex flex-col h-full">
+                {/* Image */}
+                <div className="h-56 relative overflow-hidden">
+                  <img 
+                    src={event.image} 
+                    alt={event.title} 
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-wider">
+                    {event.category}
+                  </div>
                 </div>
-                <div className="absolute top-4 left-4 bg-black/50 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-wider">
-                  {event.category}
-                </div>
-              </div>
 
               {/* Content */}
               <div className="p-6 flex-1 flex flex-col">
@@ -107,6 +133,7 @@ const EventMarketplace: React.FC<EventMarketplaceProps> = ({ onBack, onSignIn })
             </div>
           ))}
         </div>
+        )}
       </div>
 
       {selectedEvent && (
