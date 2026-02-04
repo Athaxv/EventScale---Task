@@ -1,8 +1,0 @@
-{
-  "buildCommand": "pnpm --filter eventscale build",
-  "installCommand": "pnpm install --frozen-lockfile",
-  "framework": null,
-  "outputDirectory": "dist",
-  "devCommand": "pnpm --filter eventscale dev"
-}
-

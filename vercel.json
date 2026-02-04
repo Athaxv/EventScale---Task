@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm --filter eventscale build",
-  "installCommand": "pnpm install --frozen-lockfile",
+  "installCommand": "corepack enable && corepack prepare pnpm@8.15.6 --activate && pnpm install",
   "framework": null,
   "outputDirectory": "apps/frontend/dist",
   "devCommand": "pnpm --filter eventscale dev"
