@@ -1,7 +1,7 @@
 // Prisma Schema for Events Platform with NeonDB
 generator client {
   provider = "prisma-client-js"
-  output   = "../dist/generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
