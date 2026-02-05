@@ -1,9 +1,16 @@
 {
-  "name": "scraper",
+  "name": "@repo/scraper",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Event scraper service",
+  "main": "./dist/runScraper.js",
+  "types": "./dist/runScraper.d.ts",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/runScraper.d.ts",
+      "default": "./dist/runScraper.js"
+    }
+  },
   "scripts": {
     "build": "tsc",
     "type-check": "tsc --noEmit",

@@ -15,12 +15,14 @@
   "dependencies": {
     "@types/express": "^5.0.6",
     "@repo/db": "workspace:*",
+    "@repo/scraper": "workspace:*",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
     "google-auth-library": "^9.15.0",
-    "jsonwebtoken": "^9.0.3"
+    "jsonwebtoken": "^9.0.3",
+    "playwright": "^1.58.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",

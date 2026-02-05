@@ -309,6 +309,39 @@ app.post("/events/:id/lead", async (req, res) => {
     }
 })
 
+// Admin endpoint to manually trigger scraper
+app.post("/admin/internal/run", verifyToken, async (req, res) => {
+    try {
+        const { runScraper, isScraperRunning } = await import("@repo/scraper");
+
+        if (isScraperRunning()) {
+            return res.status(409).json({
+                success: false,
+                message: "Scraper is already running. Please wait for it to complete."
+            });
+        }
+
+        // Run scraper asynchronously and return immediately
+        res.status(202).json({
+            success: true,
+            message: "Scraper started successfully. This may take several minutes."
+        });
+
+        // Run scraper in background
+        runScraper().then(result => {
+            console.log("🏁 Scraper finished:", result);
+        }).catch(error => {
+            console.error("❌ Scraper error:", error);
+        });
+    } catch (error) {
+        console.error("Failed to run scraper:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to start scraper"
+        });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
