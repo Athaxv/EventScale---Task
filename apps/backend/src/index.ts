@@ -11,10 +11,17 @@ await connectDB();
 const app = express();
 
 // Middleware
+// app.use(cors({
+//     origin: process.env.FRONTEND_URL || "http://localhost:3000",
+//     credentials: true
+// }));
+
 app.use(cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true
-}));
+    origin: [
+        'http://localhost:3000',
+        'https://event-task-frontend.vercel.app'
+    ]
+}))
 app.use(express.json());
 
 const prisma = getPrisma();
