@@ -220,6 +220,15 @@ app.post("/admin/event/:id", verifyToken, async (req, res) => {
         const eventId = id as string;
         const admin = (req as any).admin; // Get admin from verifyToken middleware
 
+        // Check if event exists first
+        const existingEvent = await prisma.event.findUnique({
+            where: { id: eventId }
+        });
+
+        if (!existingEvent) {
+            return res.status(404).json({ error: "Event not found" });
+        }
+
         const event = await prisma.event.update({
             where: { id: eventId },
             data: {
@@ -230,9 +239,13 @@ app.post("/admin/event/:id", verifyToken, async (req, res) => {
             }
         });
         res.status(200).json(event);
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to import event:', error);
-        res.status(500).json({ error: "Failed to update event" });
+        // Handle specific Prisma errors
+        if (error.code === 'P2025') {
+            return res.status(404).json({ error: "Event not found" });
+        }
+        res.status(500).json({ error: "Failed to update event", details: error.message });
     }
 })
 
