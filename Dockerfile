@@ -4,7 +4,7 @@
 FROM node:20-alpine AS base
 
 # Install pnpm (v8.x for lockfile v6.0 compatibility)
-RUN corepack enable && corepack prepare pnpm@8.15.9 --activate
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 # Set working directory
 WORKDIR /app
@@ -57,7 +57,7 @@ RUN pnpm run build
 FROM node:20-alpine AS runner
 
 # Install pnpm (v8.x for lockfile v6.0 compatibility)
-RUN corepack enable && corepack prepare pnpm@8.15.9 --activate
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 WORKDIR /app
 
