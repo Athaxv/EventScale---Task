@@ -1,8 +1,0 @@
-{
-  "buildCommand": "pnpm --filter eventscale build",
-  "installCommand": "corepack enable && corepack prepare pnpm@8.15.6 --activate && pnpm install --no-frozen-lockfile --shamefully-hoist || (npm install -g pnpm@8.15.6 && pnpm install --no-frozen-lockfile --shamefully-hoist)",
-  "framework": null,
-  "outputDirectory": "apps/frontend/dist",
-  "devCommand": "pnpm --filter eventscale dev"
-}
-

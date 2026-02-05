@@ -13,8 +13,10 @@
     "turbo": "^2.8.2",
     "typescript": "5.9.2"
   },
-  "packageManager": "pnpm@8.15.6",
-  "engines": {
-    "node": ">=18"
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "express": "^5.2.1"
   }
 }
