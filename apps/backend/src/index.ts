@@ -12,7 +12,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-    origin: "http://localhost:3000",
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true
 }));
 app.use(express.json());
@@ -30,13 +30,13 @@ const client = GOOGLE_CLIENT_ID ? new OAuth2Client(GOOGLE_CLIENT_ID) : null;
 const verifyToken = async (req: express.Request, res: express.Response, next: express.NextFunction) => {
     try {
         const token = req.headers.authorization?.replace('Bearer ', '');
-        
+
         if (!token) {
             return res.status(401).json({ error: 'No token provided' });
         }
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as { adminId: string };
-        
+
         // Verify admin exists
         const admin = await prisma.admin.findUnique({
             where: { id: decoded.adminId }
@@ -69,8 +69,8 @@ app.post("/auth/google", async (req, res) => {
         // Verify the Google token
         if (!GOOGLE_CLIENT_ID || !client) {
             console.error('GOOGLE_CLIENT_ID is not configured in backend .env file');
-            return res.status(500).json({ 
-                error: "Google Client ID not configured. Please set GOOGLE_CLIENT_ID in apps/backend/.env" 
+            return res.status(500).json({
+                error: "Google Client ID not configured. Please set GOOGLE_CLIENT_ID in apps/backend/.env"
             });
         }
 
@@ -212,10 +212,10 @@ app.post("/admin/event/:id", verifyToken, async (req, res) => {
         }
         const eventId = id as string;
         const admin = (req as any).admin; // Get admin from verifyToken middleware
-        
+
         const event = await prisma.event.update({
             where: { id: eventId },
-            data: { 
+            data: {
                 isApproved: true,
                 status: 'imported',
                 importedAt: new Date(),
@@ -304,5 +304,5 @@ app.post("/events/:id/lead", async (req, res) => {
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Server is running on port ${PORT}`);
 });

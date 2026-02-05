@@ -1,0 +1,31 @@
+# Render Blueprint Configuration
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: eventscale-backend
+    runtime: docker
+    region: oregon # or singapore, frankfurt, ohio
+    plan: free # or starter, standard, etc.
+    
+    # Docker configuration
+    dockerfilePath: ./apps/backend/Dockerfile
+    dockerContext: .
+    
+    # Health check
+    healthCheckPath: /
+    
+    # Environment variables (set actual values in Render dashboard)
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: DATABASE_URL
+        sync: false # Set manually in Render dashboard for security
+      - key: JWT_SECRET
+        sync: false # Set manually in Render dashboard for security
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
