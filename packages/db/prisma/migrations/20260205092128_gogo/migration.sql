@@ -35,13 +35,14 @@ CREATE TABLE "events" (
     "image_url" VARCHAR(500),
     "poster_url" VARCHAR(500),
     "source_website" VARCHAR(100) NOT NULL,
+    "source_event_id" VARCHAR(255),
     "original_url" VARCHAR(500) NOT NULL,
     "last_scraped_at" TIMESTAMPTZ(6),
     "status" "event_status" NOT NULL DEFAULT 'new',
-    "imported_at" TIMESTAMPTZ(6),
-    "imported_by" UUID,
-    "import_notes" TEXT,
+    "hash" VARCHAR(255) NOT NULL,
     "is_approved" BOOLEAN NOT NULL DEFAULT false,
+    "imported_at" TIMESTAMPTZ(6),
+    "imported_by" VARCHAR(255),
     "created_at" TIMESTAMPTZ(6) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ(6) NOT NULL,
 
@@ -75,6 +76,9 @@ CREATE INDEX "admins_provider_idx" ON "admins"("provider");
 CREATE UNIQUE INDEX "events_original_url_key" ON "events"("original_url");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "events_hash_key" ON "events"("hash");
+
+-- CreateIndex
 CREATE INDEX "events_status_idx" ON "events"("status");
 
 -- CreateIndex
@@ -87,13 +91,7 @@ CREATE INDEX "events_city_idx" ON "events"("city");
 CREATE INDEX "events_is_approved_idx" ON "events"("is_approved");
 
 -- CreateIndex
-CREATE INDEX "events_imported_by_idx" ON "events"("imported_by");
-
--- CreateIndex
 CREATE INDEX "events_last_scraped_at_idx" ON "events"("last_scraped_at");
-
--- CreateIndex
-CREATE INDEX "events_imported_at_idx" ON "events"("imported_at");
 
 -- CreateIndex
 CREATE INDEX "events_source_website_idx" ON "events"("source_website");
@@ -114,6 +112,9 @@ CREATE INDEX "events_city_is_approved_status_idx" ON "events"("city", "is_approv
 CREATE INDEX "events_source_website_last_scraped_at_idx" ON "events"("source_website", "last_scraped_at");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "events_source_event_id_source_website_key" ON "events"("source_event_id", "source_website");
+
+-- CreateIndex
 CREATE INDEX "event_leads_email_idx" ON "event_leads"("email");
 
 -- CreateIndex
@@ -127,9 +128,6 @@ CREATE INDEX "event_leads_created_at_idx" ON "event_leads"("created_at");
 
 -- CreateIndex
 CREATE INDEX "event_leads_event_id_email_idx" ON "event_leads"("event_id", "email");
-
--- AddForeignKey
-ALTER TABLE "events" ADD CONSTRAINT "events_imported_by_fkey" FOREIGN KEY ("imported_by") REFERENCES "admins"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "event_leads" ADD CONSTRAINT "event_leads_event_id_fkey" FOREIGN KEY ("event_id") REFERENCES "events"("id") ON DELETE CASCADE ON UPDATE CASCADE;
