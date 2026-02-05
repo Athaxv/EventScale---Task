@@ -1,5 +1,8 @@
 # Render Blueprint Configuration
 # https://render.com/docs/blueprint-spec
+#
+# IMPORTANT: Root Directory must be "." (repo root), NOT "apps/backend"
+# The Dockerfile needs access to the entire monorepo for workspace dependencies.
 
 services:
   - type: web
@@ -9,7 +12,8 @@ services:
     plan: free # or starter, standard, etc.
     
     # Docker configuration
-    dockerfilePath: ./apps/backend/Dockerfile
+    # Root Directory: . (set in Render dashboard, must be repo root)
+    dockerfilePath: ./Dockerfile
     dockerContext: .
     
     # Health check
@@ -29,3 +33,5 @@ services:
         sync: false
       - key: GOOGLE_CLIENT_SECRET
         sync: false
+      - key: FRONTEND_URL
+        sync: false # Your frontend URL for CORS
