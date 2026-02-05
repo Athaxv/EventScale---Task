@@ -1,135 +1,333 @@
-# Turborepo starter
+# EventScale - Event Aggregation Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack event aggregation platform that scrapes events from public websites, allows admin curation, and serves approved events to end users through a marketplace.
 
-## Using this example
+## 🏗️ Architecture Overview
 
-Run the following command:
-
-```sh
-npx create-turbo@latest
+```mermaid
+graph TB
+    subgraph Scraper["🕷️ Scraper Service"]
+        CRON[Cron Scheduler] --> PLAYWRIGHT[Playwright Browser]
+        PLAYWRIGHT --> PARSER[Data Parser]
+    end
+    
+    subgraph Database["🗄️ Database Layer"]
+        PRISMA[Prisma ORM] --> NEONDB[(NeonDB PostgreSQL)]
+    end
+    
+    subgraph Backend["⚙️ Backend API"]
+        EXPRESS[Express.js Server]
+        AUTH[Google OAuth]
+        JWT[JWT Auth]
+    end
+    
+    subgraph Frontend["🌐 Frontend"]
+        MARKETPLACE[Event Marketplace]
+        ADMIN[Admin Dashboard]
+    end
+    
+    PARSER --> PRISMA
+    EXPRESS --> PRISMA
+    AUTH --> JWT
+    ADMIN --> EXPRESS
+    MARKETPLACE --> EXPRESS
 ```
 
-## What's inside?
+---
 
-This Turborepo includes the following packages/apps:
+## 📦 Tech Stack
 
-### Apps and Packages
+| Layer | Technology |
+|-------|------------|
+| **Backend** | Express.js (Node.js) with TypeScript |
+| **Database** | PostgreSQL (NeonDB - Serverless) |
+| **ORM** | Prisma 7 with PostgreSQL adapter |
+| **Scraper** | Playwright (Chromium headless browser) |
+| **Scheduler** | node-cron |
+| **Authentication** | Google OAuth 2.0 + JWT |
+| **Monorepo** | Turborepo + pnpm workspaces |
+| **Deployment** | Render (Backend), Vercel (Frontend) |
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+---
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+## 📁 Project Structure
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+eventscale/
+├── apps/
+│   ├── backend/          # Express.js API server
+│   │   └── src/
+│   │       └── index.ts  # Main API with routes
+│   └── scraper/          # Event scraping service
+│       └── src/
+│           ├── index.ts          # Cron scheduler
+│           └── scraper/
+│               └── eventbrite.ts # Eventbrite scraper
+├── packages/
+│   └── db/               # Shared database package
+│       ├── prisma/
+│       │   └── schema.prisma
+│       └── src/
+│           └── index.ts  # DB connection utilities
+├── Dockerfile            # Docker configuration
+├── render.yaml           # Render deployment config
+└── turbo.json            # Turborepo config
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+---
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+## 🔄 Data Flow
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+```mermaid
+sequenceDiagram
+    participant Cron as ⏰ Cron Scheduler
+    participant Scraper as 🕷️ Playwright Scraper
+    participant Eventbrite as 🌐 Eventbrite
+    participant DB as 🗄️ PostgreSQL
+    participant API as ⚙️ Backend API
+    participant Admin as 👤 Admin Dashboard
+    participant User as 👥 End Users
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
-```
-
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+    Cron->>Scraper: Trigger hourly job
+    Scraper->>Eventbrite: Fetch event listings
+    Eventbrite-->>Scraper: HTML pages
+    Scraper->>Scraper: Parse & normalize data
+    Scraper->>DB: Upsert events (status: new/updated)
+    
+    Admin->>API: Login via Google OAuth
+    API-->>Admin: JWT token
+    Admin->>API: GET /admin/events
+    API-->>Admin: Unapproved events list
+    Admin->>API: POST /admin/event/:id
+    API->>DB: Update (isApproved: true)
+    
+    User->>API: GET /events
+    API->>DB: Query approved events
+    DB-->>API: Event list
+    API-->>User: Approved events JSON
+    User->>API: POST /events/:id/lead
+    API->>DB: Save lead email
 ```
 
-### Remote Caching
+### Flow Summary
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+1. **Scraping**: The scraper periodically visits public event websites (Eventbrite) and extracts event information using Playwright
+2. **Storage**: Scraped data is normalized and stored in PostgreSQL using Prisma ORM
+3. **Lifecycle**: Events are tagged based on their status (`new`, `updated`, `inactive`, `imported`)
+4. **API**: The backend API exposes endpoints to fetch event data and manage admin actions
+5. **Frontend**: The marketplace consumes these APIs to render events for end users
+6. **Admin Auth**: Admin users authenticate via Google OAuth to access protected features
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+---
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+## 🗄️ Database Schema
 
+### Models
+
+#### Admin
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| name | String | Admin display name |
+| email | String | Unique email address |
+| avatar | String? | Profile picture URL |
+| provider | Enum | Auth provider (`google`, `email`) |
+| providerId | String? | OAuth provider ID |
+
+#### Event
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| title | String | Event title |
+| description | Text | Full description |
+| summary | String | Short summary (max 500 chars) |
+| venueName | String | Location name |
+| venueAddress | String | Full address |
+| city | String | City (default: Sydney) |
+| category | String | Event category |
+| dateTimeStart | DateTime | Event start time |
+| dateTimeEnd | DateTime | Event end time |
+| imageUrl | String? | Event image |
+| sourceWebsite | String | Source (e.g., "Eventbrite") |
+| originalUrl | String | Original event URL |
+| status | Enum | `new`, `updated`, `inactive`, `imported` |
+| isApproved | Boolean | Admin approval status |
+| hash | String | Content hash for change detection |
+
+#### EventLead
+| Field | Type | Description |
+|-------|------|-------------|
+| id | UUID | Primary key |
+| email | String | User's email |
+| eventId | UUID | Related event |
+| consent | Boolean | Marketing consent |
+| originalEventUrl | String | Redirect URL |
+
+---
+
+## 🛣️ API Routes
+
+### Public Endpoints
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/` | Health check |
+| `GET` | `/events` | Get all approved, active events |
+| `POST` | `/events/:id/lead` | Capture lead email before redirect |
+
+### Authentication
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/auth/google` | Login with Google OAuth |
+| `GET` | `/auth/verify` | Verify JWT token |
+
+### Admin (Protected - Requires JWT)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/admin/events` | Get unapproved events |
+| `GET` | `/admin/imported/events` | Get imported events |
+| `POST` | `/admin/event/:id` | Approve/import an event |
+
+---
+
+## 🕷️ Scraper Details
+
+The scraper uses **Playwright** with headless Chromium to scrape events from Eventbrite.
+
+### Features
+- **Hourly execution** via node-cron (`0 * * * *`)
+- **Deduplication** using content hashing
+- **Upsert logic**: Creates new events or updates existing ones
+- **Inactive marking**: Events no longer found are marked `inactive`
+- **Multiple extraction strategies**: JSON-LD, data attributes, DOM parsing
+
+### Event Lifecycle States
+
+```mermaid
+stateDiagram-v2
+    [*] --> new: Scraped for first time
+    new --> imported: Admin approves
+    new --> updated: Content changed
+    updated --> imported: Admin approves
+    new --> inactive: No longer found
+    updated --> inactive: No longer found
+    imported --> inactive: No longer found
 ```
-cd my-turborepo
 
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+---
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js 18+
+- pnpm 8+
+- PostgreSQL database (or NeonDB account)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone <repo-url>
+cd eventscale
+
+# Install dependencies
+pnpm install
+
+# Set up environment variables
+cp apps/backend/.env.example apps/backend/.env
+cp apps/scraper/.env.example apps/scraper/.env
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+### Environment Variables
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+#### Backend (.env)
+```env
+DATABASE_URL=postgresql://user:pass@host/db
+GOOGLE_CLIENT_ID=your-google-client-id
+JWT_SECRET=your-jwt-secret
+PORT=5000
 ```
 
-## Useful Links
+#### Scraper (.env)
+```env
+DATABASE_URL=postgresql://user:pass@host/db
+```
 
-Learn more about the power of Turborepo:
+### Database Setup
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+```bash
+# Generate Prisma client
+cd packages/db
+pnpm prisma generate
+
+# Run migrations
+pnpm prisma migrate deploy
+```
+
+### Running Locally
+
+```bash
+# Start backend API
+cd apps/backend
+pnpm dev
+
+# Start scraper (in another terminal)
+cd apps/scraper
+pnpm dev
+```
+
+---
+
+## 🐳 Docker Deployment
+
+```bash
+# Build the image
+docker build -t eventscale-backend .
+
+# Run the container
+docker run -p 5000:5000 --env-file .env eventscale-backend
+```
+
+---
+
+## 📡 Deployment
+
+### Backend (Render)
+- Deployed as a Docker web service
+- Auto-deploys on push to main branch
+- Uses `render.yaml` for configuration
+
+### Frontend (Vercel)
+- Deployed at: `https://event-task-frontend.vercel.app`
+- CORS configured to allow requests from frontend
+
+---
+
+## 🔐 Authentication Flow
+
+```mermaid
+sequenceDiagram
+    participant User as Admin User
+    participant Frontend as Frontend
+    participant Google as Google OAuth
+    participant Backend as Backend API
+    participant DB as Database
+
+    User->>Frontend: Click "Login with Google"
+    Frontend->>Google: Redirect to Google login
+    Google-->>Frontend: Credential token
+    Frontend->>Backend: POST /auth/google {credential}
+    Backend->>Google: Verify token
+    Google-->>Backend: User info
+    Backend->>DB: Find or create admin
+    Backend-->>Frontend: JWT token + admin info
+    Frontend->>Frontend: Store token in localStorage
+```
+
+---
+
+## 📝 License
+
+MIT License
