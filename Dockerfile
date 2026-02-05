@@ -3,8 +3,8 @@
 # ============================================
 FROM node:20-alpine AS base
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm (pinned to match lockfile version)
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 # Set working directory
 WORKDIR /app
@@ -57,7 +57,7 @@ RUN pnpm run build
 FROM node:20-alpine AS runner
 
 # Install pnpm for production dependency pruning
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 WORKDIR /app
 
