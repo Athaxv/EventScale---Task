@@ -60,6 +60,10 @@ const verifyToken = async (req: express.Request, res: express.Response, next: ex
     }
 };
 
+const generateOTP = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 app.get("/", async (req, res) => {
     res.status(200).json({ message: "Hello World" });
 });
@@ -320,6 +324,53 @@ app.post("/events/:id/lead", async (req, res) => {
         }
         res.status(500).json({ error: "Failed to save lead" });
     }
+})
+
+app.post("/send-otp", async (req, res) => {
+    const { email } = req.body;
+
+    const otp = generateOTP()
+
+    await prisma.otpmodel.create({
+        data: {
+            email,
+            otp: otp,
+            expiresAt: Date.now() + 5 * 60 * 1000
+        }
+    });
+
+    console.log("OTP: ", otp);
+
+    res.status(200).json({ message: "OTP sent successfully" });
+})
+
+app.post('/verfiy/otp', async (req, res) => {
+    const { email, otp } = req.body;
+
+    try {
+        const check = await prisma.otpmodel.findUnique({
+            where: {
+                email
+            }
+        })
+
+        if (!check) {
+            return res.status(404).json({ error: "OTP not found" });
+        }
+
+        if (check.otp !== otp) {
+            return res.status(401).json({ error: "Invalid OTP" });
+        }
+
+        await prisma.otpmodel.delete({
+            where: {
+                email
+            }
+        })
+    } catch (error) {
+
+    }
+
 })
 
 const PORT = process.env.PORT || 5000;

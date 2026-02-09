@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "build": "pnpm prisma:generate && tsc && cp -R src/generated dist/generated",
+    "build": "pnpm prisma:generate && tsc -b",
     "type-check": "tsc --noEmit",
     "clean": "rimraf dist",
     "prisma:generate": "prisma generate --schema=./prisma/schema.prisma",
