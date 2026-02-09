@@ -368,7 +368,8 @@ app.post('/verfiy/otp', async (req, res) => {
             }
         })
     } catch (error) {
-
+        console.error('Failed to verify OTP:', error);
+        res.status(500).json({ error: "Failed to verify OTP" });
     }
 
 })
